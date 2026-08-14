@@ -38,7 +38,7 @@
     const register = mode === "register";
     titleEl().textContent = register ? "Create an account" : "Sign in to Flow";
     subEl().textContent = register
-      ? "Anyone can sign up. Use an invite code later to join someone else's flow."
+      ? "Anyone can sign up. Join someone else's flow with a one-time invite code."
       : "Sign in with your email, or create a free account.";
     submitBtn().textContent = register ? "Create account" : "Sign in";
     toggleBtn().textContent = register ? "Already have an account? Sign in" : "Create an account";

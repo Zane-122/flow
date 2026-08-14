@@ -54,18 +54,36 @@ async function migrate() {
   await query(`ALTER TABLE invite_codes ADD COLUMN IF NOT EXISTS flow_id TEXT REFERENCES flows(id) ON DELETE CASCADE`);
   await query(`ALTER TABLE flows ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT false`);
   await query(`
+    CREATE TABLE IF NOT EXISTS invite_code_uses (
+      invite_id TEXT NOT NULL REFERENCES invite_codes(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      PRIMARY KEY (invite_id, user_id)
+    )
+  `);
+  await query(`
     INSERT INTO flow_members (flow_id, user_id)
     SELECT id, owner_id FROM flows WHERE owner_id IS NOT NULL
     ON CONFLICT DO NOTHING
   `);
+  // Guests are session-only now — drop any leftover shared memberships.
+  await query(`
+    DELETE FROM flow_members m
+    USING flows f
+    WHERE m.flow_id = f.id AND (f.owner_id IS NULL OR m.user_id <> f.owner_id)
+  `);
 }
 
 async function canAccessFlow(userId, flowId) {
+  // Owner always. Guests only while the invite is live (public) and they haven't left.
   const r = await query(
     `SELECT 1 FROM flows f
      WHERE f.id = $2 AND (
        f.owner_id = $1
-       OR EXISTS (SELECT 1 FROM flow_members m WHERE m.flow_id = f.id AND m.user_id = $1)
+       OR (
+         f.is_public = true
+         AND EXISTS (SELECT 1 FROM flow_members m WHERE m.flow_id = f.id AND m.user_id = $1)
+       )
      )`,
     [userId, flowId]
   );
@@ -79,9 +97,32 @@ async function addFlowMember(flowId, userId) {
   );
 }
 
+async function removeFlowMember(flowId, userId) {
+  await query(
+    "DELETE FROM flow_members WHERE flow_id = $1 AND user_id = $2",
+    [flowId, userId]
+  );
+}
+
+async function clearGuestMembers(flowId, ownerId) {
+  await query(
+    "DELETE FROM flow_members WHERE flow_id = $1 AND user_id <> $2",
+    [flowId, ownerId]
+  );
+}
+
 function publicUser(row) {
   if (!row) return null;
   return { id: row.id, email: row.email, name: row.name || row.email.split("@")[0] };
 }
 
-module.exports = { pool, query, migrate, publicUser, canAccessFlow, addFlowMember };
+module.exports = {
+  pool,
+  query,
+  migrate,
+  publicUser,
+  canAccessFlow,
+  addFlowMember,
+  removeFlowMember,
+  clearGuestMembers,
+};

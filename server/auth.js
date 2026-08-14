@@ -143,10 +143,20 @@ async function consumeInvite(code, userId) {
   const row = r.rows[0];
   if (!row) return { ok: false, error: "Invalid invite code" };
   if (!row.flow_id) return { ok: false, error: "This invite is no longer valid" };
-  const flow = await db.query("SELECT id, name, is_public FROM flows WHERE id = $1", [row.flow_id]);
+  const flow = await db.query("SELECT id, name, is_public, owner_id FROM flows WHERE id = $1", [row.flow_id]);
   if (!flow.rows[0]) return { ok: false, error: "Flow not found" };
+  if (flow.rows[0].owner_id === userId) {
+    return { ok: true, flow: { id: flow.rows[0].id, name: flow.rows[0].name } };
+  }
   if (!flow.rows[0].is_public) {
-    return { ok: false, error: "That flow is not open to join right now" };
+    return { ok: false, error: "That invite is no longer active" };
+  }
+  const already = await db.query(
+    "SELECT 1 FROM invite_code_uses WHERE invite_id = $1 AND user_id = $2",
+    [row.id, userId]
+  );
+  if (already.rows[0]) {
+    return { ok: false, error: "You already used this invite — ask for a new code" };
   }
   const unlimited = !row.max_uses;
   if (!unlimited && row.use_count >= row.max_uses) {
@@ -161,6 +171,10 @@ async function consumeInvite(code, userId) {
   } else {
     await db.query("UPDATE invite_codes SET use_count = use_count + 1 WHERE id = $1", [row.id]);
   }
+  await db.query(
+    "INSERT INTO invite_code_uses (invite_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+    [row.id, userId]
+  );
   await db.addFlowMember(row.flow_id, userId);
   return { ok: true, flow: { id: flow.rows[0].id, name: flow.rows[0].name } };
 }

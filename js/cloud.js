@@ -26,12 +26,12 @@
     document.body.classList.remove("flow-guest");
     if (publicBtn){
       publicBtn.hidden = !owner;
-      publicBtn.textContent = share.isPublic ? "Make this flow private" : "Open this flow to public";
+      publicBtn.textContent = share.isPublic ? "End invite" : "Create invite code";
       publicBtn.classList.toggle("public-on", !!share.isPublic);
       publicBtn.title = owner
         ? (share.isPublic
-          ? "Private again — everyone else is kicked out"
-          : "Only this open flow will get a join code; others can edit")
+          ? "Revoke the code and kick everyone out"
+          : "Mint a fresh join code for this open flow only")
         : "";
     }
     if (saveBtn){
@@ -130,9 +130,7 @@
         row.className = "flow-row" + (f.id === F.flowId ? " current" : "");
         row.innerHTML = "<span class='flow-row-name'></span><span class='flow-row-meta'></span>";
         row.querySelector(".flow-row-name").textContent = f.name || "Untitled";
-        row.querySelector(".flow-row-meta").textContent =
-          (F.user && f.owner_id === F.user.id ? "Yours" : ("Shared by " + (f.owner_name || f.owner_email || "someone"))) +
-          " · " + fmtTime(f.updated_at);
+        row.querySelector(".flow-row-meta").textContent = fmtTime(f.updated_at);
         row.addEventListener("click", async () => {
           await openFlow(f.id, { toast: true });
           hideFlows();
@@ -312,9 +310,9 @@
       applyShareState(body);
       if (next){
         try { await navigator.clipboard.writeText(body.join_code); } catch (e) {}
-        F.toast("Opened “" + (S.projectName || "this flow") + "” to public — others can join and edit");
+        F.toast("New invite code — anyone with it can join until you end it");
       } else {
-        F.toast("Made private — everyone else was kicked out");
+        F.toast("Invite ended — guests kicked and the old code no longer works");
       }
     } catch (err){
       F.toast(err.message);

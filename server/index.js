@@ -121,9 +121,9 @@ async function joinCodeForFlow(flowId) {
   return r.rows[0] ? r.rows[0].code : null;
 }
 
-async function ensureJoinCode(flowId, ownerId) {
-  const existing = await joinCodeForFlow(flowId);
-  if (existing) return existing;
+/** Always mint a fresh random code; previous codes for this flow stop working. */
+async function mintJoinCode(flowId, ownerId) {
+  await db.query("DELETE FROM invite_codes WHERE flow_id = $1", [flowId]);
   const code = auth.makeInviteCode();
   await db.query(
     "INSERT INTO invite_codes (id, code, created_by, flow_id, max_uses) VALUES ($1, $2, $3, $4, 0)",
@@ -139,18 +139,15 @@ app.post("/api/flows/:id/share", auth.requireAuth, async (req, res) => {
     "SELECT id, name, owner_id, is_public FROM flows WHERE id = $1 AND owner_id = $2",
     [flowId, req.user.id]
   );
-  if (!owned.rows[0]) return res.status(403).json({ error: "Only the owner can open or close this flow" });
+  if (!owned.rows[0]) return res.status(403).json({ error: "Only the owner can create or revoke an invite" });
   let code = null;
   if (makePublic) {
-    code = await ensureJoinCode(flowId, req.user.id);
+    code = await mintJoinCode(flowId, req.user.id);
     await db.query("UPDATE flows SET is_public = true, updated_at = now() WHERE id = $1", [flowId]);
   } else {
     await db.query("UPDATE flows SET is_public = false, updated_at = now() WHERE id = $1", [flowId]);
-    // Drop everyone except the owner, then boot live sessions.
-    await db.query(
-      "DELETE FROM flow_members WHERE flow_id = $1 AND user_id <> $2",
-      [flowId, req.user.id]
-    );
+    await db.query("DELETE FROM invite_codes WHERE flow_id = $1", [flowId]);
+    await db.clearGuestMembers(flowId, req.user.id);
     collab.kickNonOwners(flowId, req.user.id);
   }
   res.json({
@@ -169,14 +166,14 @@ app.post("/api/invites/redeem", auth.requireAuth, async (req, res) => {
 });
 
 app.get("/api/flows", auth.requireAuth, async (req, res) => {
+  // Only flows you own — guest joins are temporary and never listed as shared.
   const r = await db.query(`
     SELECT f.id, f.name, f.updated_at, f.created_at, f.owner_id,
            u.email AS owner_email, u.name AS owner_name,
-           (f.owner_id = $1) AS is_owner
+           true AS is_owner
     FROM flows f
     LEFT JOIN users u ON u.id = f.owner_id
     WHERE f.owner_id = $1
-       OR EXISTS (SELECT 1 FROM flow_members m WHERE m.flow_id = f.id AND m.user_id = $1)
     ORDER BY f.updated_at DESC
   `, [req.user.id]);
   res.json({ flows: r.rows });

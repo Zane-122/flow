@@ -15,6 +15,32 @@ function colorFor(id) {
 }
 
 const rooms = new Map();
+const pendingGuestRemovals = new Map();
+
+function guestKey(flowId, userId) {
+  return flowId + ":" + userId;
+}
+
+function cancelGuestRemoval(flowId, userId) {
+  const key = guestKey(flowId, userId);
+  const t = pendingGuestRemovals.get(key);
+  if (t) clearTimeout(t);
+  pendingGuestRemovals.delete(key);
+}
+
+function scheduleGuestRemoval(flowId, userId) {
+  cancelGuestRemoval(flowId, userId);
+  const key = guestKey(flowId, userId);
+  pendingGuestRemovals.set(key, setTimeout(() => {
+    pendingGuestRemovals.delete(key);
+    db.removeFlowMember(flowId, userId).catch(() => {});
+  }, 20000));
+}
+
+function dropGuestNow(flowId, userId) {
+  cancelGuestRemoval(flowId, userId);
+  return db.removeFlowMember(flowId, userId).catch(() => {});
+}
 
 function room(flowId) {
   let r = rooms.get(flowId);
@@ -73,8 +99,15 @@ function leave(ws) {
   if (!flowId) return;
   const r = rooms.get(flowId);
   if (!r) return;
+  const userId = ws.user && ws.user.id;
+  const wasOwner = !!ws.isOwner;
   r.clients.delete(ws);
   ws.flowId = null;
+  ws.isOwner = false;
+  // Guests lose access shortly after disconnect (grace for refresh). Same invite can't be reused.
+  if (userId && !wasOwner) {
+    scheduleGuestRemoval(flowId, userId);
+  }
   broadcast(flowId, { type: "presence", peers: presence(flowId) });
   if (!r.clients.size) {
     if (r.doc) {
@@ -90,9 +123,13 @@ function kickNonOwners(flowId, ownerId) {
   if (!r) return;
   for (const c of [...r.clients]) {
     if (!c.user || c.user.id === ownerId) continue;
-    send(c, { type: "kicked", reason: "This flow is private again" });
-    leave(c);
+    dropGuestNow(flowId, c.user.id);
+    send(c, { type: "kicked", reason: "Invite ended — this flow is private again" });
+    r.clients.delete(c);
+    c.flowId = null;
+    c.isOwner = false;
   }
+  broadcast(flowId, { type: "presence", peers: presence(flowId) });
 }
 
 async function join(ws, flowId) {
@@ -101,16 +138,27 @@ async function join(ws, flowId) {
     send(ws, { type: "error", error: "You don't have access to this flow" });
     return;
   }
-  const exists = await db.query("SELECT id, name, owner_id FROM flows WHERE id = $1", [flowId]);
+  const exists = await db.query(
+    "SELECT id, name, owner_id, is_public FROM flows WHERE id = $1",
+    [flowId]
+  );
   if (!exists.rows[0]) {
     send(ws, { type: "error", error: "Flow not found" });
     return;
   }
+  const isOwner = exists.rows[0].owner_id === ws.user.id;
+  // Guests may only stay while the invite is live.
+  if (!isOwner && !exists.rows[0].is_public) {
+    await dropGuestNow(flowId, ws.user.id);
+    send(ws, { type: "kicked", reason: "Invite ended — this flow is private again" });
+    return;
+  }
   if (ws.flowId) leave(ws);
+  cancelGuestRemoval(flowId, ws.user.id);
   const r = room(flowId);
   if (!r.doc) r.doc = storage.readFlow(flowId) || storage.emptyDoc(exists.rows[0].name);
   ws.flowId = flowId;
-  ws.isOwner = exists.rows[0].owner_id === ws.user.id;
+  ws.isOwner = isOwner;
   r.clients.add(ws);
   send(ws, {
     type: "joined",
