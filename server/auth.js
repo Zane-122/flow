@@ -117,13 +117,23 @@ async function consumeInvite(code, userId) {
   const r = await db.query("SELECT * FROM invite_codes WHERE code = $1", [raw]);
   const row = r.rows[0];
   if (!row) return { ok: false, error: "Invalid invite code" };
-  if (row.use_count >= row.max_uses) return { ok: false, error: "Invite code already used" };
-  const used = await db.query(
-    "UPDATE invite_codes SET use_count = use_count + 1 WHERE id = $1 AND use_count < max_uses RETURNING id",
-    [row.id]
-  );
-  if (!used.rows[0]) return { ok: false, error: "Invite code already used" };
-  return { ok: true };
+  if (!row.flow_id) return { ok: false, error: "This invite is no longer valid" };
+  const unlimited = !row.max_uses;
+  if (!unlimited && row.use_count >= row.max_uses) {
+    return { ok: false, error: "Invite code already used" };
+  }
+  if (!unlimited) {
+    const used = await db.query(
+      "UPDATE invite_codes SET use_count = use_count + 1 WHERE id = $1 AND use_count < max_uses RETURNING id",
+      [row.id]
+    );
+    if (!used.rows[0]) return { ok: false, error: "Invite code already used" };
+  } else {
+    await db.query("UPDATE invite_codes SET use_count = use_count + 1 WHERE id = $1", [row.id]);
+  }
+  await db.addFlowMember(row.flow_id, userId);
+  const flow = await db.query("SELECT id, name FROM flows WHERE id = $1", [row.flow_id]);
+  return { ok: true, flow: flow.rows[0] || { id: row.flow_id } };
 }
 
 module.exports = {

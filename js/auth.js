@@ -1,11 +1,10 @@
-// auth.js — login / register / invite-gated accounts.
+// auth.js — login / register.
 (function(){
   "use strict";
   const F = window.Flow;
 
   const authEl = () => document.getElementById("authGate");
   const errEl = () => document.getElementById("authError");
-  const inviteWrap = () => document.getElementById("authInviteWrap");
   const titleEl = () => document.getElementById("authTitle");
   const subEl = () => document.getElementById("authSub");
   const submitBtn = () => document.getElementById("authSubmit");
@@ -13,7 +12,6 @@
   const nameWrap = () => document.getElementById("authNameWrap");
 
   let mode = "login";
-  let status = { inviteRequired: true, firstAccount: false };
   F.user = null;
 
   async function api(path, opts){
@@ -37,25 +35,15 @@
   }
 
   function paintForm(){
-    const first = status.firstAccount;
-    const register = mode === "register" || first;
-    mode = register ? "register" : "login";
-    titleEl().textContent = first ? "Create the first account" : (register ? "Create an account" : "Sign in to Flow");
-    subEl().textContent = first
-      ? "This instance is empty. Your email and password become the first account. Later signups need an invite code."
-      : (register ? "You need an invite code from someone who already has access." : "Invite-only workspace. Use the email and password for your account.");
+    const register = mode === "register";
+    titleEl().textContent = register ? "Create an account" : "Sign in to Flow";
+    subEl().textContent = register
+      ? "Anyone can sign up. Use an invite code later to join someone else's flow."
+      : "Sign in with your email, or create a free account.";
     submitBtn().textContent = register ? "Create account" : "Sign in";
-    toggleBtn().hidden = first;
-    toggleBtn().textContent = register ? "Already have an account? Sign in" : "Have an invite? Create an account";
-    inviteWrap().hidden = !register || first;
+    toggleBtn().textContent = register ? "Already have an account? Sign in" : "Create an account";
     nameWrap().hidden = !register;
     showError("");
-  }
-
-  async function refreshStatus(){
-    status = await api("/api/status");
-    if (status.firstAccount) mode = "register";
-    paintForm();
   }
 
   function setSignedIn(user){
@@ -72,6 +60,7 @@
     F.user = null;
     document.body.classList.remove("signed-in");
     authEl().classList.add("show");
+    paintForm();
   }
 
   async function submit(e){
@@ -80,12 +69,11 @@
     const email = document.getElementById("authEmail").value;
     const password = document.getElementById("authPassword").value;
     const name = document.getElementById("authName").value;
-    const invite = document.getElementById("authInvite").value;
     try{
       const path = mode === "register" ? "/api/register" : "/api/login";
       const body = await api(path, {
         method: "POST",
-        body: JSON.stringify({ email, password, name, invite })
+        body: JSON.stringify({ email, password, name })
       });
       setSignedIn(body.user);
       if (F.cloud && F.cloud.start) await F.cloud.start();
@@ -110,7 +98,7 @@
         return true;
       } catch (e){
         setSignedOut();
-        try { await refreshStatus(); } catch (err){
+        try { await api("/api/status"); } catch (err){
           showError("Can't reach the server. Is Flow running?");
         }
         return false;
@@ -118,6 +106,7 @@
     }
   };
 
+  paintForm();
   document.getElementById("authForm").addEventListener("submit", submit);
   document.getElementById("authToggle").addEventListener("click", () => {
     mode = mode === "login" ? "register" : "login";

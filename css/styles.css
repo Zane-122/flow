@@ -254,4 +254,15 @@ body.signed-in .account-wrap{display:flex;}
 .flow-row-name{font-size:13px;font-weight:650;}
 .flow-row-meta{font-size:11px;color:var(--muted);}
 .flows-empty{padding:28px 12px;text-align:center;color:var(--muted);font-size:13px;}
+.flows-join{
+  display:flex;gap:8px;padding:0 14px 8px;
+}
+.flows-join input{
+  flex:1;min-width:0;height:36px;padding:0 10px;border-radius:8px;
+  background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);
+  color:var(--stroke);font:13px ui-monospace,Menlo,monospace;outline:none;
+  -webkit-user-select:text;user-select:text;
+}
+.flows-join input:focus{border-color:var(--accent);}
+.flows-join .btn{background:rgba(255,255,255,0.06);}
 

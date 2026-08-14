@@ -41,11 +41,8 @@ app.get("/health", (_req, res) => {
 
 app.get("/api/status", async (_req, res) => {
   try {
-    const n = await auth.userCount();
-    res.json({
-      inviteRequired: n > 0,
-      firstAccount: n === 0,
-    });
+    await auth.userCount();
+    res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: "Database unavailable" });
   }
@@ -56,18 +53,11 @@ app.post("/api/register", async (req, res) => {
     const email = auth.normalizeEmail(req.body && req.body.email);
     const password = String((req.body && req.body.password) || "");
     const name = String((req.body && req.body.name) || "").trim().slice(0, 40) || email.split("@")[0];
-    const invite = (req.body && req.body.invite) || "";
     if (!auth.validEmail(email)) return res.status(400).json({ error: "Enter a valid email" });
     if (password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
 
     const existing = await db.query("SELECT id FROM users WHERE email = $1", [email]);
     if (existing.rows[0]) return res.status(409).json({ error: "That email is already registered" });
-
-    const n = await auth.userCount();
-    if (n > 0) {
-      const used = await auth.consumeInvite(invite);
-      if (!used.ok) return res.status(403).json({ error: used.error });
-    }
 
     const id = auth.uid();
     const hash = await auth.bcrypt.hash(password, 12);
@@ -113,29 +103,52 @@ app.get("/api/me", auth.requireAuth, (req, res) => {
 
 app.get("/api/invites", auth.requireAuth, async (req, res) => {
   const r = await db.query(
-    "SELECT code, max_uses, use_count, created_at FROM invite_codes WHERE created_by = $1 ORDER BY created_at DESC LIMIT 40",
+    `SELECT i.code, i.max_uses, i.use_count, i.created_at, i.flow_id, f.name AS flow_name
+     FROM invite_codes i
+     LEFT JOIN flows f ON f.id = i.flow_id
+     WHERE i.created_by = $1
+     ORDER BY i.created_at DESC LIMIT 40`,
     [req.user.id]
   );
   res.json({ invites: r.rows });
 });
 
 app.post("/api/invites", auth.requireAuth, async (req, res) => {
+  const flowId = String((req.body && req.body.flowId) || "");
+  if (!flowId) return res.status(400).json({ error: "Open a flow first" });
+  const owned = await db.query("SELECT id, name FROM flows WHERE id = $1 AND owner_id = $2", [flowId, req.user.id]);
+  if (!owned.rows[0]) return res.status(403).json({ error: "Only the owner can invite people to this flow" });
+  const existing = await db.query(
+    "SELECT code FROM invite_codes WHERE flow_id = $1 AND created_by = $2 ORDER BY created_at DESC LIMIT 1",
+    [flowId, req.user.id]
+  );
+  if (existing.rows[0]) return res.json({ code: existing.rows[0].code, flowId, name: owned.rows[0].name });
   const code = auth.makeInviteCode();
   const id = auth.uid();
   await db.query(
-    "INSERT INTO invite_codes (id, code, created_by, max_uses) VALUES ($1, $2, $3, 1)",
-    [id, code, req.user.id]
+    "INSERT INTO invite_codes (id, code, created_by, flow_id, max_uses) VALUES ($1, $2, $3, $4, 0)",
+    [id, code, req.user.id, flowId]
   );
-  res.json({ code });
+  res.json({ code, flowId, name: owned.rows[0].name });
 });
 
-app.get("/api/flows", auth.requireAuth, async (_req, res) => {
+app.post("/api/invites/redeem", auth.requireAuth, async (req, res) => {
+  const used = await auth.consumeInvite((req.body && req.body.code) || "", req.user.id);
+  if (!used.ok) return res.status(400).json({ error: used.error });
+  res.json({ flow: used.flow });
+});
+
+app.get("/api/flows", auth.requireAuth, async (req, res) => {
   const r = await db.query(`
-    SELECT f.id, f.name, f.updated_at, f.created_at, u.email AS owner_email, u.name AS owner_name
+    SELECT f.id, f.name, f.updated_at, f.created_at, f.owner_id,
+           u.email AS owner_email, u.name AS owner_name,
+           (f.owner_id = $1) AS is_owner
     FROM flows f
     LEFT JOIN users u ON u.id = f.owner_id
+    WHERE f.owner_id = $1
+       OR EXISTS (SELECT 1 FROM flow_members m WHERE m.flow_id = f.id AND m.user_id = $1)
     ORDER BY f.updated_at DESC
-  `);
+  `, [req.user.id]);
   res.json({ flows: r.rows });
 });
 
@@ -151,11 +164,15 @@ app.post("/api/flows", auth.requireAuth, async (req, res) => {
     "INSERT INTO flows (id, owner_id, name) VALUES ($1, $2, $3)",
     [id, req.user.id, name]
   );
+  await db.addFlowMember(id, req.user.id);
   storage.writeFlow(id, doc);
   res.json({ id, name, data: doc });
 });
 
 app.get("/api/flows/:id", auth.requireAuth, async (req, res) => {
+  if (!(await db.canAccessFlow(req.user.id, req.params.id))) {
+    return res.status(404).json({ error: "Flow not found" });
+  }
   const r = await db.query("SELECT id, name, owner_id, updated_at FROM flows WHERE id = $1", [req.params.id]);
   if (!r.rows[0]) return res.status(404).json({ error: "Flow not found" });
   const live = collab.liveDoc(req.params.id);
@@ -164,6 +181,9 @@ app.get("/api/flows/:id", auth.requireAuth, async (req, res) => {
 });
 
 app.put("/api/flows/:id", auth.requireAuth, async (req, res) => {
+  if (!(await db.canAccessFlow(req.user.id, req.params.id))) {
+    return res.status(404).json({ error: "Flow not found" });
+  }
   const r = await db.query("SELECT id, name FROM flows WHERE id = $1", [req.params.id]);
   if (!r.rows[0]) return res.status(404).json({ error: "Flow not found" });
   const name = String((req.body && req.body.name) || r.rows[0].name).trim().slice(0, 80) || r.rows[0].name;

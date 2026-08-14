@@ -11,7 +11,7 @@
   <form class="auth-card" id="authForm">
     <div class="auth-mark">Flow</div>
     <h1 id="authTitle">Sign in to Flow</h1>
-    <p class="auth-sub" id="authSub">Invite-only workspace. Use the email and password for your account.</p>
+    <p class="auth-sub" id="authSub">Sign in with your email, or create a free account.</p>
     <div id="authNameWrap" hidden>
       <label for="authName">Name</label>
       <input id="authName" type="text" autocomplete="nickname" maxlength="40" placeholder="Ada">
@@ -20,13 +20,9 @@
     <input id="authEmail" type="email" autocomplete="username" required placeholder="you@studio.com">
     <label for="authPassword">Password</label>
     <input id="authPassword" type="password" autocomplete="current-password" required minlength="8" placeholder="At least 8 characters">
-    <div id="authInviteWrap" hidden>
-      <label for="authInvite">Invite code</label>
-      <input id="authInvite" type="text" autocomplete="off" placeholder="FLOW-XXXXXX" spellcheck="false">
-    </div>
     <p class="auth-error" id="authError" hidden></p>
     <button class="btn auth-submit" id="authSubmit" type="submit">Sign in</button>
-    <button class="auth-toggle" id="authToggle" type="button">Have an invite? Create an account</button>
+    <button class="auth-toggle" id="authToggle" type="button">Create an account</button>
   </form>
 </div>
 
@@ -37,7 +33,7 @@
   </button>
   <div class="account-menu" id="accountMenu">
     <div class="account-email" id="accountEmail"></div>
-    <button class="btn" id="inviteBtn" type="button">Create invite code</button>
+    <button class="btn" id="inviteBtn" type="button">Invite to this flow</button>
     <div class="invite-out" id="inviteCodeOut" hidden></div>
     <button class="btn" id="logoutBtn" type="button">Log out</button>
   </div>
@@ -197,6 +193,10 @@
       <button class="btn icon-only" id="flowsClose" title="Close">✕</button>
     </div>
     <div class="flows-list" id="flowsList"></div>
+    <form class="flows-join" id="flowsJoin">
+      <input id="joinCode" type="text" placeholder="FLOW-XXXXXX" spellcheck="false" autocomplete="off">
+      <button class="btn" type="submit">Join</button>
+    </form>
     <div class="describe-actions">
       <button class="btn" id="flowsImport" type="button">Import JSON</button>
       <button class="btn" id="flowsNew" type="button">New</button>

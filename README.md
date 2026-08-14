@@ -16,7 +16,7 @@ npm start
 
 Open http://localhost:3333
 
-The first account can register with no invite. After that, signups need an invite code generated from the account menu (top right).
+Anyone can create an account. Invite codes are for sharing **a specific flow**, not for signing up.
 
 ## Railway
 
@@ -61,14 +61,15 @@ Generate a public URL on the app service. Replicas must stay at **1** (volumes c
 ### First login
 
 1. Open the public URL
-2. Create the first account (email + password, no invite)
-3. Use **Create invite code** in the account menu to let others join
-4. **Save** writes the JSON file onto the volume; **Open** lists flows from Postgres + disk
-5. Anyone in the same flow sees the others’ cursors live
+2. Create an account (email + password) — anyone can sign up
+3. **Invite to this flow** (account menu) copies a code for the open diagram
+4. The other person signs in, hits **Open**, pastes the code, and **Join**
+5. **Save** writes JSON onto the volume; Open lists only your flows and ones you've joined
+6. People in the same flow see each other's cursors live
 
 ## What is stored where
 
-- **Postgres:** users (`email`, `password_hash`, `name`), invite codes, flow metadata (id, name, owner, timestamps)
+- **Postgres:** users (`email`, `password_hash`, `name`), flow membership, invite codes tied to a flow, flow metadata
 - **Volume `/data/flows/{id}.json`:** the actual diagram JSON
 - **Passwords:** bcrypt hashes only — never plaintext
 

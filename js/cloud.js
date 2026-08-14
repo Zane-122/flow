@@ -43,12 +43,12 @@
     return body;
   }
 
-  async function openFlow(id){
+  async function openFlow(id, opts){
     const body = await F.api("/api/flows/" + id);
     remember(body.id);
     applyDoc(body.data, body.name);
     if (F.collab && F.collab.join) F.collab.join(body.id);
-    F.toast("Opened ✓");
+    if (opts && opts.toast) F.toast("Opened ✓");
     return body;
   }
 
@@ -78,9 +78,10 @@
         row.innerHTML = "<span class='flow-row-name'></span><span class='flow-row-meta'></span>";
         row.querySelector(".flow-row-name").textContent = f.name || "Untitled";
         row.querySelector(".flow-row-meta").textContent =
-          (f.owner_name || f.owner_email || "") + " · " + fmtTime(f.updated_at);
+          (F.user && f.owner_id === F.user.id ? "Yours" : ("Shared by " + (f.owner_name || f.owner_email || "someone"))) +
+          " · " + fmtTime(f.updated_at);
         row.addEventListener("click", async () => {
-          await openFlow(f.id);
+          await openFlow(f.id, { toast: true });
           hideFlows();
         });
         list.appendChild(row);
@@ -112,6 +113,18 @@
     return true;
   }
 
+  async function redeemInvite(code){
+    const body = await F.api("/api/invites/redeem", {
+      method: "POST",
+      body: JSON.stringify({ code })
+    });
+    if (body.flow && body.flow.id){
+      await openFlow(body.flow.id);
+      F.toast("Joined " + (body.flow.name || "flow") + " ✓");
+    }
+    return body;
+  }
+
   F.cloud = {
     snapshotData,
     applyRemoteDoc: function(d){
@@ -121,6 +134,17 @@
     },
     start: async function(){
       if (F.collab && F.collab.connect) F.collab.connect();
+      const params = new URLSearchParams(location.search);
+      const invite = (params.get("invite") || "").trim();
+      if (invite){
+        try{
+          await redeemInvite(invite);
+          history.replaceState({}, "", location.pathname);
+          return;
+        } catch (err){
+          F.toast(err.message || "Could not join with that invite");
+        }
+      }
       let last = null;
       try { last = localStorage.getItem(LAST_KEY); } catch (e) {}
       try{
@@ -197,13 +221,34 @@
   };
 
   document.getElementById("inviteBtn").addEventListener("click", async () => {
+    if (!F.flowId){
+      F.toast("Open a flow first");
+      return;
+    }
     try{
-      const body = await F.api("/api/invites", { method: "POST", body: "{}" });
+      const body = await F.api("/api/invites", {
+        method: "POST",
+        body: JSON.stringify({ flowId: F.flowId })
+      });
       const code = body.code;
       try { await navigator.clipboard.writeText(code); } catch (e) {}
       F.toast("Invite copied: " + code);
       const el = document.getElementById("inviteCodeOut");
       if (el){ el.textContent = code; el.hidden = false; }
+    } catch (err){
+      F.toast(err.message);
+    }
+  });
+
+  document.getElementById("flowsJoin").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const input = document.getElementById("joinCode");
+    const code = (input.value || "").trim();
+    if (!code) return;
+    try{
+      await redeemInvite(code);
+      input.value = "";
+      hideFlows();
     } catch (err){
       F.toast(err.message);
     }

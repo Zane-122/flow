@@ -87,6 +87,10 @@ function leave(ws) {
 
 async function join(ws, flowId) {
   if (!flowId) return;
+  if (!(await db.canAccessFlow(ws.user.id, flowId))) {
+    send(ws, { type: "error", error: "You don't have access to this flow" });
+    return;
+  }
   const exists = await db.query("SELECT id, name FROM flows WHERE id = $1", [flowId]);
   if (!exists.rows[0]) {
     send(ws, { type: "error", error: "Flow not found" });
