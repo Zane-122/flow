@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Flow — fluid flowchart maker</title>
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+<div class="auth-gate show" id="authGate">
+  <form class="auth-card" id="authForm">
+    <div class="auth-mark">Flow</div>
+    <h1 id="authTitle">Sign in to Flow</h1>
+    <p class="auth-sub" id="authSub">Invite-only workspace. Use the email and password for your account.</p>
+    <div id="authNameWrap" hidden>
+      <label for="authName">Name</label>
+      <input id="authName" type="text" autocomplete="nickname" maxlength="40" placeholder="Ada">
+    </div>
+    <label for="authEmail">Email</label>
+    <input id="authEmail" type="email" autocomplete="username" required placeholder="you@studio.com">
+    <label for="authPassword">Password</label>
+    <input id="authPassword" type="password" autocomplete="current-password" required minlength="8" placeholder="At least 8 characters">
+    <div id="authInviteWrap" hidden>
+      <label for="authInvite">Invite code</label>
+      <input id="authInvite" type="text" autocomplete="off" placeholder="FLOW-XXXXXX" spellcheck="false">
+    </div>
+    <p class="auth-error" id="authError" hidden></p>
+    <button class="btn auth-submit" id="authSubmit" type="submit">Sign in</button>
+    <button class="auth-toggle" id="authToggle" type="button">Have an invite? Create an account</button>
+  </form>
+</div>
+
+<div class="account-wrap" id="accountWrap">
+  <div class="presence-list" id="presenceList"></div>
+  <button class="account-chip" id="accountBtn" type="button" title="Account">
+    <span id="accountName">Account</span>
+  </button>
+  <div class="account-menu" id="accountMenu">
+    <div class="account-email" id="accountEmail"></div>
+    <button class="btn" id="inviteBtn" type="button">Create invite code</button>
+    <div class="invite-out" id="inviteCodeOut" hidden></div>
+    <button class="btn" id="logoutBtn" type="button">Log out</button>
+  </div>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<div class="bar" id="bar">
+  <button class="btn icon-only" data-tool="select" id="tSelect" title="Select (1)">
+    <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M5 3 L5 19 L9.2 15 L12 21 L14.2 20 L11.4 14.2 L17 14 Z"/></svg><span class="num">1</span>
+  </button>
+  <button class="btn icon-only active" data-tool="draw" id="tDraw" title="Draw (2)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 C 8 8, 16 8, 20 4"/><path d="M20 4 l-5 1 M20 4 l-1 5"/></svg><span class="num">2</span>
+  </button>
+  <button class="btn icon-only" data-tool="shape" id="tShape" title="Shape (3)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="6" width="16" height="12" rx="2"/></svg><span class="num">3</span>
+  </button>
+  <button class="btn icon-only" data-tool="text" id="tText" title="Text (4)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6 h14 M12 6 v13 M9 19 h6"/></svg><span class="num">4</span>
+  </button>
+  <button class="btn icon-only" data-tool="fill" id="tFill" title="Fill (5)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12 L12 4 L20 12 L12 20 Z"/><path d="M6 16 h12"/></svg><span class="num">5</span>
+  </button>
+  <button class="btn icon-only" data-tool="hand" id="tHand" title="Pan (6)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12V6.5a1.5 1.5 0 0 1 3 0V11m0-.5V5.5a1.5 1.5 0 0 1 3 0V11m0-.5v-1a1.5 1.5 0 0 1 3 0V15a5 5 0 0 1-5 5h-1.2a5 5 0 0 1-3.9-1.9L5 15.5s-.8-1.1.2-1.9c.9-.6 1.8.2 1.8.2L8 15"/></svg><span class="num">6</span>
+  </button>
+
+  <div class="sep"></div>
+
+  <div class="palette" id="palette"></div>
+  <label class="swatch" title="Custom color"><input type="color" id="colorPicker" value="#6ea8ff"></label>
+
+  <div class="sep"></div>
+
+  <button class="btn icon-only" id="groupBtn" title="Group selection (⌘G)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="2"/><rect x="7" y="10" width="6" height="6" rx="1"/><rect x="13" y="10" width="6" height="6" rx="1"/></svg>
+  </button>
+  <button class="btn icon-only" id="ungroupBtn" title="Ungroup (⌘⇧G)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="2" stroke-dasharray="4 3"/><path d="M8 12h8M12 8v8"/></svg>
+  </button>
+
+  <div class="sep"></div>
+
+  <button class="btn icon-only" id="undoBtn" title="Undo (⌘Z)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9 9 4"/><path d="M4 9 h11 a5 5 0 0 1 0 10 h-3"/></svg>
+  </button>
+  <button class="btn icon-only" id="redoBtn" title="Redo (⌘⇧Z)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14 20 9 15 4"/><path d="M20 9 H9 a5 5 0 0 0 0 10 h3"/></svg>
+  </button>
+
+  <div class="sep"></div>
+
+  <button class="btn icon-only" id="newBtn" title="New project">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+  <input type="text" id="projectName" class="project-input" value="Untitled" spellcheck="false" title="Project name">
+
+  <div class="sep"></div>
+
+  <button class="btn icon-only" id="openBtn" title="Open">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-5l-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z"/></svg>
+  </button>
+  <button class="btn icon-only" id="saveBtn" title="Save (⌘S)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+  </button>
+  <button class="btn icon-only" id="pngBtn" title="Export PNG">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+  </button>
+  <button class="btn icon-only" id="centerCamBtn" title="Center view">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+  </button>
+  <button class="btn icon-only" id="workflowEntryBtn" title="Set workflow entry — grows to all downstream nodes (⌘⇧W)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+  </button>
+  <button class="btn icon-only" id="workflowDeleteBtn" title="Remove workflow">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="16" rx="2" stroke-dasharray="5 3"/><path d="M8 12h8"/></svg>
+  </button>
+  <button class="btn icon-only" id="describeBtn" title="Describe flowchart as text">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h14"/></svg>
+  </button>
+</div>
+
+<div class="subbar" id="shapeBar">
+  <span class="lbl">Shape</span>
+  <div class="seg" id="shapeSeg"></div>
+  <div class="sep"></div>
+  <span class="lbl">Size</span>
+  <div class="seg" id="sizeSeg"></div>
+  <span class="hint">Click canvas to place · drag to size</span>
+</div>
+
+<div class="subbar" id="arrowBar">
+  <span class="lbl">Line</span>
+  <div class="seg" id="widthSeg"></div>
+  <div class="sep"></div>
+  <span class="lbl">Style</span>
+  <div class="seg" id="dashSeg"></div>
+  <div class="sep"></div>
+  <div class="seg" id="arrowOptSeg"></div>
+</div>
+
+<div class="subbar" id="textBar">
+  <span class="lbl">Text</span>
+  <div class="seg" id="textSizeSeg"></div>
+  <div class="sep"></div>
+  <div class="seg" id="textOptSeg"></div>
+  <span class="hint">Click canvas to add · double-click to edit</span>
+</div>
+
+<div class="hud">
+  <div class="tool"><span class="dot" id="hudDot"></span><span id="hudTool">Arrows</span></div>
+  <div class="next" id="hudNext">Hold <b>W</b> + drag to make shapes</div>
+</div>
+
+<div class="help" id="help">
+  <span class="close" id="helpClose">✕</span>
+  <h3>How to draw</h3>
+  <div><b style="color:var(--stroke)">Arrows</b> — just drag on empty space. Let go and it snaps into a clean curve, or a straight line if you meant straight.</div>
+  <div style="margin-top:7px"><b style="color:var(--stroke)">Shapes</b> — hold <kbd>W</kbd> and drag. Tap <kbd>W</kbd> to cycle shape, <kbd>Q</kbd> to cycle preset sizes (Free/S/M/L — even while dragging).</div>
+  <div style="margin-top:7px"><b style="color:var(--stroke)">Select</b> — press <kbd>1</kbd> (or <kbd>V</kbd>) to select, move, and delete (<kbd>⌫</kbd>) things. Tools also switch with keys <kbd>1</kbd>–<kbd>6</kbd>.</div>
+  <div style="margin-top:7px"><b style="color:var(--stroke)">Text</b> — press <kbd>T</kbd> (or double-click) and click to drop text. Double-click a shape to label it.</div>
+  <div style="margin-top:7px"><b style="color:var(--stroke)">Fill</b> — pick a color, hit <kbd>F</kbd>, click a shape.</div>
+  <div style="margin-top:7px"><b style="color:var(--stroke)">Connect</b> — arrows near a shape snap to it. Select an arrow and drag its round end handles to detach or re-attach.</div>
+  <div style="margin-top:7px"><b style="color:var(--stroke)">Move / Pan</b> — drag anything to move it. Use the <b>Pan</b> tool (<kbd>H</kbd>) or <kbd>Space</kbd>+drag to move around the canvas; scroll to pan, ⌘+scroll to zoom. <kbd>⌫</kbd> deletes selected.</div>
+</div>
+
+<div class="minimap-wrap" id="minimapWrap">
+  <canvas id="minimap"></canvas>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="describe-modal" id="describeModal">
+  <div class="describe-panel">
+    <div class="describe-head">
+      <h3>Flow description</h3>
+      <button class="btn icon-only" id="describeClose" title="Close">✕</button>
+    </div>
+    <div class="describe-scope" id="describeScopeWrap" hidden>
+      <label for="describeWorkflow">Workflow</label>
+      <select id="describeWorkflow"></select>
+    </div>
+    <textarea id="describeOutput" readonly spellcheck="false"></textarea>
+    <div class="describe-actions">
+      <button class="btn" id="describeRun">Generate</button>
+      <button class="btn" id="describeCopy">Copy</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept=".json,.flow.json,application/json" style="display:none">
+
+<div class="describe-modal" id="flowsModal">
+  <div class="describe-panel flows-panel">
+    <div class="describe-head">
+      <h3>Open a flow</h3>
+      <button class="btn icon-only" id="flowsClose" title="Close">✕</button>
+    </div>
+    <div class="flows-list" id="flowsList"></div>
+    <div class="describe-actions">
+      <button class="btn" id="flowsImport" type="button">Import JSON</button>
+      <button class="btn" id="flowsNew" type="button">New</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/geometry.js"></script>
+<script src="js/render.js"></script>
+<script src="js/arrows.js"></script>
+<script src="js/text.js"></script>
+<script src="js/io.js"></script>
+<script src="js/groups.js"></script>
+<script src="js/workflows.js"></script>
+<script src="js/interactions.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/minimap.js"></script>
+<script src="js/describe.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/collab.js"></script>
+<script src="js/cloud.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

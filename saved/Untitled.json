@@ -1,0 +1,627 @@
+{
+  "version": 2,
+  "name": "Untitled",
+  "cam": {
+    "x": 19.756891716506175,
+    "y": 368.3201311045421,
+    "scale": 0.5177462889214951
+  },
+  "objects": [
+    {
+      "type": "panel",
+      "id": "mr8ck1hb7ldwx",
+      "x": 2014.0430814066137,
+      "y": -211.59349016903707,
+      "w": 8.477279110415111,
+      "h": 1032.6166678380741,
+      "color": "#8b97a8",
+      "t0": null
+    },
+    {
+      "type": "shape",
+      "id": "mr89lrzo6ftzt",
+      "shape": "box",
+      "x": 126.1015625,
+      "y": 204.375,
+      "w": 150,
+      "h": 96,
+      "stroke": "#e8edf5",
+      "fill": null,
+      "text": "Client Completes Initial Payment For Site",
+      "t0": null
+    },
+    {
+      "type": "shape",
+      "id": "mr89m38sk56bk",
+      "shape": "box",
+      "x": 403.92578125,
+      "y": 204.375,
+      "w": 150,
+      "h": 96,
+      "stroke": "#e8edf5",
+      "fill": null,
+      "text": "Site V1 Created by AI",
+      "t0": null
+    },
+    {
+      "type": "shape",
+      "id": "mr89maoua6rfh",
+      "shape": "box",
+      "x": 498.24609375,
+      "y": 485.90234375,
+      "w": 150,
+      "h": 96,
+      "stroke": "#e8edf5",
+      "fill": "#b18cff",
+      "text": "Initial Client Request Created",
+      "t0": null
+    },
+    {
+      "type": "arrow",
+      "pts": [
+        {
+          "x": 299.5703125,
+          "y": 295.6171875
+        },
+        {
+          "x": 388.65625,
+          "y": 276.671875
+        }
+      ],
+      "color": "#e8edf5",
+      "width": 6,
+      "dashed": false,
+      "head": true,
+      "flow": false,
+      "t0": null,
+      "from": "mr89lrzo6ftzt",
+      "to": "mr89m38sk56bk"
+    },
+    {
+      "type": "arrow",
+      "pts": [
+        {
+          "x": 494.03125,
+          "y": 309.88671875
+        },
+        {
+          "x": 494.03125,
+          "y": 388.51992866578655
+        }
+      ],
+      "color": "#b18cff",
+      "width": 6,
+      "dashed": false,
+      "head": true,
+      "flow": true,
+      "t0": null,
+      "from": "mr89m38sk56bk",
+      "to": "mr89maoua6rfh"
+    },
+    {
+      "type": "shape",
+      "id": "mr89t6ik0ac7j",
+      "shape": "box",
+      "x": 879.18359375,
+      "y": 200.03515625,
+      "w": 397.43359375,
+      "h": 104.6796875,
+      "stroke": "#e8edf5",
+      "fill": "#5ce1a6",
+      "text": "Admin Revision Begin",
+      "t0": null
+    },
+    {
+      "type": "arrow",
+      "pts": [
+        {
+          "x": 571.9140625,
+          "y": 254.32779109238908
+        },
+        {
+          "x": 667.6380095333549,
+          "y": 254.32779109238908
+        }
+      ],
+      "color": "#5ce1a6",
+      "width": 6,
+      "dashed": false,
+      "head": true,
+      "flow": false,
+      "t0": null,
+      "from": "mr89m38sk56bk",
+      "to": "mr89t6ik0ac7j"
+    },
+    {
+      "type": "shape",
+      "id": "mr89xgm4u2ek3",
+      "shape": "box",
+      "x": 804.18359375,
+      "y": 485.90234375,
+      "w": 150,
+      "h": 96,
+      "stroke": "#e8edf5",
+      "fill": "#e8edf5",
+      "text": "Admin Revises",
+      "t0": null
+    },
+    {
+      "type": "shape",
+      "id": "mr89yt2komzea",
+      "shape": "box",
+      "x": 306.515625,
+      "y": 485.90234375,
+      "w": 150,
+      "h": 96,
+      "stroke": "#e8edf5",
+      "fill": "#b18cff",
+      "text": "Site Files Added to R21",
+      "t0": null
+    },
+    {
+      "type": "arrow",
+      "pts": [
+        {
+          "x": 425.78515625,
+          "y": 322.8046875
+        },
+        {
+          "x": 290.4210347806662,
+          "y": 458.1688089693338
+        }
+      ],
+      "color": "#b18cff",
+      "width": 6,
+      "dashed": false,
+      "head": true,
+      "flow": true,
+      "t0": null,
+      "from": "mr89m38sk56bk",
+      "to": "mr89yt2komzea"
+    },
+    {
+      "type": "shape",
+      "id": "mr8a8z935ddjb",
+      "shape": "box",
+      "x": 1002.900390625,
+      "y": 485.90234375,
+      "w": 150,
+      "h": 96,
+      "stroke": "#e8edf5",
+      "fill": "#e8edf5",
+      "text": "Admin Revises",
+      "t0": null
+    },
+    {
+      "type": "shape",
+      "id": "mr8a8zxm6icmm",
+      "shape": "box",
+      "x": 1201.6171875,
+      "y": 485.90234375,
+      "w": 150,
+      "h": 96,
+      "stroke": "#e8edf5",
+      "fill": "#e8edf5",
+      "text": "Admin Revises",
+      "t0": null
+    },
+    {
+      "type": "arrow",
+      "pts": [
+        {
+          "x": 976.3906392745766,
+          "y": 534.0509919819128
+        },
+        {
+          "x": 997.65234375,
+          "y": 528.16015625
+        }
+      ],
+      "color": "#e8edf5",
+      "width": 6,
+      "dashed": false,
+      "head": true,
+      "flow": false,
+      "t0": null,
+      "from": "mr89xgm4u2ek3",
+      "to": "mr8a8z935ddjb"
+    },
+    {
+      "type": "arrow",
+      "pts": [
+        {
+          "x": 1165.01171875,
+          "y": 538.9375
+        },
+        {
+          "x": 1198.6487266909965,
+          "y": 538.9375
+        }
+      ],
+      "color": "#e8edf5",
+      "width": 6,
+      "dashed": false,
+      "head": true,
+      "flow": false,
+      "t0": null,
+      "from": "mr8a8z935ddjb",
+      "to": "mr8a8zxm6icmm"
+    },
+    {
+      "type": "arrow",
+      "pts": [
+        {
+          "x": 665.4140625,
+          "y": 536.96484375
+        },
+        {
+          "x": 808.049409429166,
+          "y": 536.96484375
+        }
+      ],
+      "color": "#e8edf5",
+      "width": 3.5,
+      "dashed": true,
+      "head": true,
+      "flow": false,
+      "t0": null,
+      "from": "mr89maoua6rfh",
+      "to": "mr89xgm4u2ek3"
+    },
+    {
+      "type": "arrow",
+      "pts": [
+        {
+          "x": 1074.58203125,
+          "y": 309.9453125
+        },
+        {
+          "x": 1074.58203125,
+          "y": 465.34483790007585
+        }
+      ],
+      "color": "#5ce1a6",
+      "width": 6,
+      "dashed": false,
+      "head": true,
+      "flow": false,
+      "t0": null,
+      "from": "mr89t6ik0ac7j",
+      "to": "mr8a8z935ddjb"
+    },
+    {
+      "type": "shape",
+      "id": "mr8afae11j8ol",
+      "shape": "box",
+      "x": 911.8432752143402,
+      "y": 756.5334623711497,
+      "w": 332.1142308213198,
+      "h": 96.50858736829571,
+      "stroke": "#e8edf5",
+      "fill": "#b18cff",
+      "text": "Revised Files added to DB with action",
+      "t0": null
+    },
+    {
+      "type": "arrow",
+      "pts": [
+        {
+          "x": 883.90886501778,
+          "y": 598.905578009113
+        },
+        {
+          "x": 1053.8532224203532,
+          "y": 768.8499354116861
+        }
+      ],
+      "color": "#b18cff",
+      "width": 6,
+      "dashed": false,
+      "head": true,
+      "flow": true,
+      "t0": null,
+      "from": "mr89xgm4u2ek3",
+      "to": "mr8afae11j8ol"
+    },
+    {
+      "type": "arrow",
+      "pts": [
+        {
+          "x": 1078.0128671459481,
+          "y": 603.7204761043536
+        },
+        {
+          "x": 1078.0128671459481,
+          "y": 773.185712772926
+        }
+      ],
+      "color": "#b18cff",
+      "width": 6,
+      "dashed": false,
+      "head": true,
+      "flow": true,
+      "t0": null,
+      "from": "mr8a8z935ddjb",
+      "to": "mr8afae11j8ol"
+    },
+    {
+      "type": "arrow",
+      "pts": [
+        {
+          "x": 1278.5240958732948,
+          "y": 604.9631663389082
+        },
+        {
+          "x": 1137.889928941412,
+          "y": 745.597333270791
+        }
+      ],
+      "color": "#b18cff",
+      "width": 6,
+      "dashed": false,
+      "head": true,
+      "flow": true,
+      "t0": null,
+      "from": "mr8a8zxm6icmm",
+      "to": "mr8afae11j8ol"
+    },
+    {
+      "type": "shape",
+      "id": "mr8akmctdwm3m",
+      "shape": "box",
+      "x": 1601.875,
+      "y": 204.375,
+      "w": 150,
+      "h": 96,
+      "stroke": "#e8edf5",
+      "fill": null,
+      "text": "Client Request Approved by Admin",
+      "t0": null
+    },
+    {
+      "type": "arrow",
+      "pts": [
+        {
+          "x": 1380.4219321117055,
+          "y": 537.7599122301621
+        },
+        {
+          "x": 1643.248360664858,
+          "y": 274.9334836770096
+        }
+      ],
+      "color": "#e8edf5",
+      "width": 3.5,
+      "dashed": false,
+      "head": true,
+      "flow": false,
+      "t0": null,
+      "from": "mr8a8zxm6icmm",
+      "to": "mr8akmctdwm3m"
+    },
+    {
+      "type": "shape",
+      "id": "mr8aoz0ovwrrm",
+      "shape": "box",
+      "x": 1524.8049104728277,
+      "y": 757.0420497394455,
+      "w": 304.1401790543448,
+      "h": 96,
+      "stroke": "#e8edf5",
+      "fill": "#b18cff",
+      "text": "Client Revision Status set to 'approved'",
+      "t0": null
+    },
+    {
+      "type": "arrow",
+      "pts": [
+        {
+          "x": 1653.8024071259092,
+          "y": 308.7975169365857
+        },
+        {
+          "x": 1653.8024071259092,
+          "y": 724.4572478472443
+        }
+      ],
+      "color": "#b18cff",
+      "width": 6,
+      "dashed": false,
+      "head": true,
+      "flow": true,
+      "t0": null,
+      "from": "mr8akmctdwm3m",
+      "to": "mr8aoz0ovwrrm"
+    },
+    {
+      "type": "text",
+      "x": 428.31169153544874,
+      "y": -122.23142064428919,
+      "text": "Full Site Review System",
+      "color": "#e8edf5",
+      "size": 48,
+      "bold": false,
+      "border": true,
+      "t0": null
+    },
+    {
+      "type": "shape",
+      "id": "mr8b11tzh46op",
+      "shape": "box",
+      "x": 1478.158203125,
+      "y": -356.9717372394455,
+      "w": 397.43359375,
+      "h": 104.6796875,
+      "stroke": "#e8edf5",
+      "fill": null,
+      "text": "Client Revision Begin",
+      "t0": null
+    },
+    {
+      "type": "shape",
+      "id": "mr8b51e1val6z",
+      "shape": "box",
+      "x": 1002.900390625,
+      "y": -356.9717372394455,
+      "w": 150,
+      "h": 96,
+      "stroke": "#e8edf5",
+      "fill": "#ff6b9d",
+      "text": "Reject",
+      "t0": null
+    },
+    {
+      "type": "shape",
+      "id": "mr8b51oo0drzn",
+      "shape": "box",
+      "x": 2200.849609375,
+      "y": -348.2920497394454,
+      "w": 150,
+      "h": 96,
+      "stroke": "#e8edf5",
+      "fill": "#5ce1a6",
+      "text": "Approve",
+      "t0": null
+    },
+    {
+      "type": "arrow",
+      "pts": [
+        {
+          "x": 1498.6477535601389,
+          "y": -307.6966616121143
+        },
+        {
+          "x": 1166.624880633214,
+          "y": -289.13071975872606
+        }
+      ],
+      "color": "#ff6b9d",
+      "width": 6,
+      "dashed": false,
+      "head": true,
+      "flow": false,
+      "t0": null,
+      "from": "mr8b11tzh46op",
+      "to": "mr8b51e1val6z"
+    },
+    {
+      "type": "arrow",
+      "pts": [
+        {
+          "x": 1817.0945247712111,
+          "y": -294.2996025221013
+        },
+        {
+          "x": 2205.1266017380226,
+          "y": -291.6061786725112
+        }
+      ],
+      "color": "#5ce1a6",
+      "width": 6,
+      "dashed": false,
+      "head": true,
+      "flow": false,
+      "t0": null,
+      "to": "mr8b51oo0drzn",
+      "from": "mr8b11tzh46op"
+    },
+    {
+      "type": "arrow",
+      "pts": [
+        {
+          "x": 1690.113696068397,
+          "y": 293.629840298062
+        },
+        {
+          "x": 1690.113696068397,
+          "y": -294.6811032526311
+        }
+      ],
+      "color": "#e8edf5",
+      "width": 6,
+      "dashed": false,
+      "head": true,
+      "flow": false,
+      "t0": null,
+      "from": "mr8akmctdwm3m",
+      "to": "mr8b11tzh46op"
+    },
+    {
+      "type": "shape",
+      "id": "mr8bi4899f0mq",
+      "shape": "box",
+      "x": 1002.900390625,
+      "y": -111.84027286998037,
+      "w": 150,
+      "h": 96,
+      "stroke": "#e8edf5",
+      "fill": "#b18cff",
+      "text": "New Client Request Created",
+      "t0": null
+    },
+    {
+      "type": "arrow",
+      "pts": [
+        {
+          "x": 1075.9035974526382,
+          "y": -244.05788068878428
+        },
+        {
+          "x": 1075.9035974526382,
+          "y": -29.073420620106617
+        }
+      ],
+      "color": "#b18cff",
+      "width": 6,
+      "dashed": false,
+      "head": true,
+      "flow": true,
+      "t0": null,
+      "from": "mr8b51e1val6z",
+      "to": "mr8bi4899f0mq"
+    },
+    {
+      "type": "arrow",
+      "pts": [
+        {
+          "x": 1076.8445147723419,
+          "y": -19.271233063359844
+        },
+        {
+          "x": 1076.8445147723419,
+          "y": 218.2889891232287
+        }
+      ],
+      "color": "#5ce1a6",
+      "width": 6,
+      "dashed": false,
+      "head": true,
+      "flow": false,
+      "t0": null,
+      "from": "mr8bi4899f0mq",
+      "to": "mr89t6ik0ac7j"
+    },
+    {
+      "type": "text",
+      "x": 2565.625036635469,
+      "y": 230.5755318202707,
+      "text": "DOMAIN SELECTION PROCESS",
+      "color": "#8b97a8",
+      "size": 48,
+      "bold": false,
+      "border": true,
+      "t0": null
+    },
+    {
+      "type": "text",
+      "x": 2547.1836461739695,
+      "y": 46.55863476691843,
+      "text": "TODO",
+      "color": "#ff6b9d",
+      "size": 48,
+      "bold": false,
+      "border": true,
+      "t0": null
+    }
+  ]
+}

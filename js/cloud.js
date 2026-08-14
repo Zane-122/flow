@@ -1,0 +1,211 @@
+// cloud.js — list / open / save flows on the server volume.
+(function(){
+  "use strict";
+  const F = window.Flow, S = F.state;
+  const LAST_KEY = "flow.lastId";
+
+  F.flowId = null;
+
+  function snapshotData(){
+    return { version: 2, name: S.projectName, cam: F.cam, objects: S.objects };
+  }
+
+  function applyDoc(d, name){
+    S.objects = (d.objects || []).map(o => {
+      o.t0 = null;
+      if (o.type === "shape" && o.id == null) o.id = F.uid();
+      if (o.type === "group" && o.id == null) o.id = F.uid();
+      if (o.type === "workflow" && o.id == null) o.id = F.uid();
+      return o;
+    });
+    if (F.syncAllGroups) F.syncAllGroups();
+    if (F.syncAllWorkflows) F.syncAllWorkflows();
+    if (d.cam){ F.cam.x = d.cam.x; F.cam.y = d.cam.y; F.cam.scale = d.cam.scale; }
+    S.projectName = name || d.name || "Untitled";
+    S.selected = null; S.selection = []; S.editingObj = null;
+    F.history.length = 0; F.future.length = 0;
+    if (F.updateProjectUI) F.updateProjectUI();
+  }
+
+  function remember(id){
+    F.flowId = id;
+    try { localStorage.setItem(LAST_KEY, id); } catch (e) {}
+  }
+
+  async function createFlow(name, data){
+    const body = await F.api("/api/flows", {
+      method: "POST",
+      body: JSON.stringify({ name: name || "Untitled", data: data || snapshotData() })
+    });
+    remember(body.id);
+    applyDoc(body.data, body.name);
+    if (F.collab && F.collab.join) F.collab.join(body.id);
+    return body;
+  }
+
+  async function openFlow(id){
+    const body = await F.api("/api/flows/" + id);
+    remember(body.id);
+    applyDoc(body.data, body.name);
+    if (F.collab && F.collab.join) F.collab.join(body.id);
+    F.toast("Opened ✓");
+    return body;
+  }
+
+  function fmtTime(iso){
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  }
+
+  async function renderList(){
+    const list = document.getElementById("flowsList");
+    if (!list) return;
+    list.innerHTML = "<div class='flows-empty'>Loading…</div>";
+    try{
+      const body = await F.api("/api/flows");
+      const flows = body.flows || [];
+      if (!flows.length){
+        list.innerHTML = "<div class='flows-empty'>No saved flows yet.</div>";
+        return;
+      }
+      list.innerHTML = "";
+      flows.forEach(f => {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "flow-row" + (f.id === F.flowId ? " current" : "");
+        row.innerHTML = "<span class='flow-row-name'></span><span class='flow-row-meta'></span>";
+        row.querySelector(".flow-row-name").textContent = f.name || "Untitled";
+        row.querySelector(".flow-row-meta").textContent =
+          (f.owner_name || f.owner_email || "") + " · " + fmtTime(f.updated_at);
+        row.addEventListener("click", async () => {
+          await openFlow(f.id);
+          hideFlows();
+        });
+        list.appendChild(row);
+      });
+    } catch (err){
+      list.innerHTML = "<div class='flows-empty'>" + err.message + "</div>";
+    }
+  }
+
+  function showFlows(){
+    document.getElementById("flowsModal").classList.add("show");
+    renderList();
+  }
+  function hideFlows(){
+    document.getElementById("flowsModal").classList.remove("show");
+  }
+
+  async function saveNow(){
+    if (!F.flowId){
+      await createFlow(S.projectName, snapshotData());
+      F.toast("Saved ✓");
+      return true;
+    }
+    await F.api("/api/flows/" + F.flowId, {
+      method: "PUT",
+      body: JSON.stringify({ name: S.projectName, data: snapshotData() })
+    });
+    F.toast("Saved ✓");
+    return true;
+  }
+
+  F.cloud = {
+    snapshotData,
+    applyRemoteDoc: function(d){
+      if (S.drag && S.drag.active) return;
+      if (S.editingObj) return;
+      applyDoc(d, d.name);
+    },
+    start: async function(){
+      if (F.collab && F.collab.connect) F.collab.connect();
+      let last = null;
+      try { last = localStorage.getItem(LAST_KEY); } catch (e) {}
+      try{
+        if (last){
+          await openFlow(last);
+          return;
+        }
+        const listed = await F.api("/api/flows");
+        if (listed.flows && listed.flows[0]){
+          await openFlow(listed.flows[0].id);
+          return;
+        }
+        await createFlow("Untitled");
+      } catch (err){
+        F.toast(err.message || "Could not load flows");
+        await createFlow("Untitled");
+      }
+    },
+    save: saveNow,
+    showList: showFlows
+  };
+
+  const origNew = F.newProject;
+  F.newProject = async function(){
+    if (S.objects.length && !confirm("Start a new project? The current flow stays saved.")) return;
+    try{
+      await createFlow("Untitled", { version: 2, name: "Untitled", cam: { x: 0, y: 0, scale: 1 }, objects: [] });
+      F.cam.x = 0; F.cam.y = 0; F.cam.scale = 1;
+      F.toast("New project");
+    } catch (err){
+      F.toast(err.message);
+      if (origNew) origNew();
+    }
+  };
+
+  const origSave = F.saveFlow;
+  F.saveFlow = async function(){
+    try{
+      await saveNow();
+    } catch (err){
+      F.toast(err.message || "Save failed");
+      if (origSave) return origSave();
+    }
+  };
+
+  const origOpen = F.openFlow;
+  F.openFlow = function(){
+    showFlows();
+  };
+
+  const origSetName = F.setProjectName;
+  F.setProjectName = function(name){
+    origSetName(name);
+    if (F.collab && F.collab.notifyDoc) F.collab.notifyDoc();
+  };
+
+  document.getElementById("flowsClose").addEventListener("click", hideFlows);
+  document.getElementById("flowsNew").addEventListener("click", async () => {
+    hideFlows();
+    await F.newProject();
+  });
+  document.getElementById("flowsImport").addEventListener("click", () => {
+    document.getElementById("fileInput").click();
+  });
+  document.getElementById("flowsModal").addEventListener("click", (e) => {
+    if (e.target.id === "flowsModal") hideFlows();
+  });
+
+  const origLoad = F.loadFromText;
+  F.loadFromText = function(text, fileName){
+    try { JSON.parse(text); } catch (e) { origLoad(text, fileName); return; }
+    origLoad(text, fileName);
+    createFlow(S.projectName, snapshotData()).then(() => hideFlows()).catch(err => F.toast(err.message));
+  };
+
+  document.getElementById("inviteBtn").addEventListener("click", async () => {
+    try{
+      const body = await F.api("/api/invites", { method: "POST", body: "{}" });
+      const code = body.code;
+      try { await navigator.clipboard.writeText(code); } catch (e) {}
+      F.toast("Invite copied: " + code);
+      const el = document.getElementById("inviteCodeOut");
+      if (el){ el.textContent = code; el.hidden = false; }
+    } catch (err){
+      F.toast(err.message);
+    }
+  });
+})();
