@@ -69,7 +69,6 @@
 
   function notifyDoc(){
     if (!F.flowId || ignoreDoc) return;
-    if (F.isReadOnly && F.isReadOnly()) return;
     if (S.drag && S.drag.active) return;
     if (S.editingObj) return;
     const key = snapshotKey();
@@ -122,6 +121,17 @@
         F.cloud.applyRemoteDoc({ name: msg.name, cam: msg.cam, objects: msg.objects });
         lastSent = snapshotKey();
         ignoreDoc = false;
+        return;
+      }
+      if (msg.type === "kicked"){
+        wantedFlow = null;
+        peers.clear();
+        paintPresence();
+        if (F.cloud && F.cloud.handleKicked) F.cloud.handleKicked(msg.reason);
+        return;
+      }
+      if (msg.type === "error" && msg.error){
+        F.toast(msg.error);
       }
     };
   }
@@ -133,6 +143,11 @@
     paintPresence();
     if (!ws || ws.readyState !== 1){ connect(); return; }
     send({ type: "join", flowId });
+  }
+
+  function clearPeers(){
+    peers.clear();
+    paintPresence();
   }
 
   function sendCursor(wp){
@@ -188,6 +203,7 @@
     join,
     notifyDoc,
     sendCursor,
+    clearPeers,
     disconnect: function(){
       wantedFlow = null;
       if (ws){ try { ws.close(); } catch (e) {} ws = null; }

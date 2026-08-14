@@ -233,46 +233,14 @@
     attachConnectedArrowOrigins(S.drag, group);
   }
 
-  function blockIfReadOnly(){
-    if (!(F.isReadOnly && F.isReadOnly())) return false;
-    F.toast("View only — only the owner can edit");
-    return true;
+  function isFormField(el){
+    if (!el) return false;
+    const tag = (el.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea" || tag === "select") return true;
+    return !!el.isContentEditable;
   }
 
-  // ---- Pointer -------------------------------------------------------------
-  canvas.addEventListener('pointerdown', (e) => {
-    canvas.setPointerCapture(e.pointerId);
-    const sp = { x: e.clientX, y: e.clientY };
-    const wp = F.screenToWorld(sp.x, sp.y);
-    S.pointer = wp;
-
-    if (S.spaceHeld || e.button === 1 || S.tool === 'hand'){
-      S.panning = { sx: sp.x, sy: sp.y, cx: F.cam.x, cy: F.cam.y };
-      canvas.style.cursor = 'grabbing';
-      return;
-    }
-
-    if (F.isReadOnly && F.isReadOnly()){
-      // Guests can pan/zoom and select for viewing, not mutate.
-      if (S.tool === 'draw' || S.tool === 'shape' || S.tool === 'text' || S.tool === 'fill'){
-        blockIfReadOnly();
-        return;
-      }
-      const hit = hitTest(wp);
-      if (hit){
-        if (F.applySelection) F.applySelection([hit]);
-        else { S.selected = hit; S.selection = [hit]; }
-        F.updateHUD();
-      } else {
-        S.selected = null; S.selection = [];
-        F.updateHUD();
-      }
-      return;
-    }
-
-    // Drag an entire workflow by its title tab.
-    const wfTitle = F.workflowTitleAt && F.workflowTitleAt(wp);
-    if (wfTitle){ startWorkflowMove(wfTitle, wp); return; }
+  // ---- Keyboard ------------------------------------------------------------
 
     if (S.tool === 'fill'){
       // A click fills the object under the cursor; a drag paints a filled panel.
@@ -708,45 +676,26 @@
     if (S.editingObj) return; // editor handles its own keys
     if (isFormField(e.target)) return; // let join-code / name fields copy, paste, type
     const meta = e.metaKey || e.ctrlKey;
-    const readOnly = F.isReadOnly && F.isReadOnly();
-    if (meta && e.key.toLowerCase() === 'z'){
-      if (readOnly){ e.preventDefault(); blockIfReadOnly(); return; }
-      e.preventDefault(); e.shiftKey ? F.redo() : F.undo(); return;
-    }
+    if (meta && e.key.toLowerCase() === 'z'){ e.preventDefault(); e.shiftKey ? F.redo() : F.undo(); return; }
     if (meta && e.key.toLowerCase() === 's'){ e.preventDefault(); F.saveFlow(); return; }
     if (meta && e.key.toLowerCase() === 'c'){ e.preventDefault(); copySelection(); return; }
-    if (meta && e.key.toLowerCase() === 'x'){
-      e.preventDefault();
-      if (readOnly){ blockIfReadOnly(); return; }
-      copySelection(); deleteSelection(); return;
-    }
-    if (meta && e.key.toLowerCase() === 'v'){
-      e.preventDefault();
-      if (readOnly){ blockIfReadOnly(); return; }
-      pasteClipboard(); return;
-    }
-    if (meta && e.key.toLowerCase() === 'd'){
-      e.preventDefault();
-      if (readOnly){ blockIfReadOnly(); return; }
-      copySelection(); pasteClipboard(); return;
-    }
+    if (meta && e.key.toLowerCase() === 'x'){ e.preventDefault(); copySelection(); deleteSelection(); return; }
+    if (meta && e.key.toLowerCase() === 'v'){ e.preventDefault(); pasteClipboard(); return; }
+    if (meta && e.key.toLowerCase() === 'd'){ e.preventDefault(); copySelection(); pasteClipboard(); return; }
     if (meta && e.key.toLowerCase() === 'g'){
       e.preventDefault();
-      if (readOnly){ blockIfReadOnly(); return; }
       if (e.shiftKey) F.ungroupSelection();
       else F.createGroupFromSelection();
       return;
     }
     if (meta && e.key.toLowerCase() === 'w' && e.shiftKey){
       e.preventDefault();
-      if (readOnly){ blockIfReadOnly(); return; }
       F.setWorkflowEntryFromSelection();
       return;
     }
     if (meta) return;
 
     if (e.key === 'w' || e.key === 'W'){
-      if (readOnly){ e.preventDefault(); blockIfReadOnly(); return; }
       e.preventDefault();
       const drag = S.drag;
       if (drag && drag.active && drag.mode === 'shape'){
@@ -774,7 +723,6 @@
     if (e.key === 'v' || e.key === 'V'){ F.setTool('select'); return; }
     if (e.key === 'Escape'){ F.setTool('select'); S.selected = null; S.selection = []; return; }
     if (e.key === 'Backspace' || e.key === 'Delete'){
-      if (readOnly){ e.preventDefault(); blockIfReadOnly(); return; }
       const sel = (S.selection && S.selection.length) ? S.selection : (S.selected ? [S.selected] : []);
       if (sel.length){
         F.pushHistory();

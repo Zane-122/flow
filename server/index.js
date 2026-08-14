@@ -146,6 +146,12 @@ app.post("/api/flows/:id/share", auth.requireAuth, async (req, res) => {
     await db.query("UPDATE flows SET is_public = true, updated_at = now() WHERE id = $1", [flowId]);
   } else {
     await db.query("UPDATE flows SET is_public = false, updated_at = now() WHERE id = $1", [flowId]);
+    // Drop everyone except the owner, then boot live sessions.
+    await db.query(
+      "DELETE FROM flow_members WHERE flow_id = $1 AND user_id <> $2",
+      [flowId, req.user.id]
+    );
+    collab.kickNonOwners(flowId, req.user.id);
   }
   res.json({
     id: flowId,
@@ -216,14 +222,11 @@ app.get("/api/flows/:id", auth.requireAuth, async (req, res) => {
 });
 
 app.put("/api/flows/:id", auth.requireAuth, async (req, res) => {
-  const r = await db.query(
-    "SELECT id, name, owner_id FROM flows WHERE id = $1",
-    [req.params.id]
-  );
-  if (!r.rows[0]) return res.status(404).json({ error: "Flow not found" });
-  if (r.rows[0].owner_id !== req.user.id) {
-    return res.status(403).json({ error: "Only the owner can save this flow" });
+  if (!(await db.canAccessFlow(req.user.id, req.params.id))) {
+    return res.status(404).json({ error: "Flow not found" });
   }
+  const r = await db.query("SELECT id, name FROM flows WHERE id = $1", [req.params.id]);
+  if (!r.rows[0]) return res.status(404).json({ error: "Flow not found" });
   const name = String((req.body && req.body.name) || r.rows[0].name).trim().slice(0, 80) || r.rows[0].name;
   const incoming = req.body && req.body.data;
   const live = collab.liveDoc(req.params.id);

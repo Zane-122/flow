@@ -85,6 +85,16 @@ function leave(ws) {
   }
 }
 
+function kickNonOwners(flowId, ownerId) {
+  const r = rooms.get(flowId);
+  if (!r) return;
+  for (const c of [...r.clients]) {
+    if (!c.user || c.user.id === ownerId) continue;
+    send(c, { type: "kicked", reason: "This flow is private again" });
+    leave(c);
+  }
+}
+
 async function join(ws, flowId) {
   if (!flowId) return;
   if (!(await db.canAccessFlow(ws.user.id, flowId))) {
@@ -160,10 +170,6 @@ function attach(server) {
       }
 
       if (msg.type === "doc") {
-        if (!ws.isOwner) {
-          send(ws, { type: "error", error: "Only the owner can edit this flow" });
-          return;
-        }
         const r = rooms.get(ws.flowId);
         if (!r) return;
         const objects = Array.isArray(msg.objects) ? msg.objects : [];
@@ -199,4 +205,4 @@ function setLiveDoc(flowId, doc) {
   if (r) r.doc = doc;
 }
 
-module.exports = { attach, liveDoc, setLiveDoc };
+module.exports = { attach, liveDoc, setLiveDoc, kickNonOwners };
