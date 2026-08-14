@@ -240,7 +240,22 @@
     return !!el.isContentEditable;
   }
 
-  // ---- Keyboard ------------------------------------------------------------
+  // ---- Pointer -------------------------------------------------------------
+  canvas.addEventListener('pointerdown', (e) => {
+    canvas.setPointerCapture(e.pointerId);
+    const sp = { x: e.clientX, y: e.clientY };
+    const wp = F.screenToWorld(sp.x, sp.y);
+    S.pointer = wp;
+
+    if (S.spaceHeld || e.button === 1 || S.tool === 'hand'){
+      S.panning = { sx: sp.x, sy: sp.y, cx: F.cam.x, cy: F.cam.y };
+      canvas.style.cursor = 'grabbing';
+      return;
+    }
+
+    // Drag an entire workflow by its title tab.
+    const wfTitle = F.workflowTitleAt && F.workflowTitleAt(wp);
+    if (wfTitle){ startWorkflowMove(wfTitle, wp); return; }
 
     if (S.tool === 'fill'){
       // A click fills the object under the cursor; a drag paints a filled panel.
