@@ -143,6 +143,11 @@ async function consumeInvite(code, userId) {
   const row = r.rows[0];
   if (!row) return { ok: false, error: "Invalid invite code" };
   if (!row.flow_id) return { ok: false, error: "This invite is no longer valid" };
+  const flow = await db.query("SELECT id, name, is_public FROM flows WHERE id = $1", [row.flow_id]);
+  if (!flow.rows[0]) return { ok: false, error: "Flow not found" };
+  if (!flow.rows[0].is_public) {
+    return { ok: false, error: "That flow is not open to join right now" };
+  }
   const unlimited = !row.max_uses;
   if (!unlimited && row.use_count >= row.max_uses) {
     return { ok: false, error: "Invite code already used" };
@@ -157,8 +162,7 @@ async function consumeInvite(code, userId) {
     await db.query("UPDATE invite_codes SET use_count = use_count + 1 WHERE id = $1", [row.id]);
   }
   await db.addFlowMember(row.flow_id, userId);
-  const flow = await db.query("SELECT id, name FROM flows WHERE id = $1", [row.flow_id]);
-  return { ok: true, flow: flow.rows[0] || { id: row.flow_id } };
+  return { ok: true, flow: { id: flow.rows[0].id, name: flow.rows[0].name } };
 }
 
 module.exports = {

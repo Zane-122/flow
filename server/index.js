@@ -103,7 +103,7 @@ app.get("/api/me", auth.requireAuth, (req, res) => {
 
 app.get("/api/invites", auth.requireAuth, async (req, res) => {
   const r = await db.query(
-    `SELECT i.code, i.max_uses, i.use_count, i.created_at, i.flow_id, f.name AS flow_name
+    `SELECT i.code, i.max_uses, i.use_count, i.created_at, i.flow_id, f.name AS flow_name, f.is_public
      FROM invite_codes i
      LEFT JOIN flows f ON f.id = i.flow_id
      WHERE i.created_by = $1
@@ -113,23 +113,47 @@ app.get("/api/invites", auth.requireAuth, async (req, res) => {
   res.json({ invites: r.rows });
 });
 
-app.post("/api/invites", auth.requireAuth, async (req, res) => {
-  const flowId = String((req.body && req.body.flowId) || "");
-  if (!flowId) return res.status(400).json({ error: "Open a flow first" });
-  const owned = await db.query("SELECT id, name FROM flows WHERE id = $1 AND owner_id = $2", [flowId, req.user.id]);
-  if (!owned.rows[0]) return res.status(403).json({ error: "Only the owner can invite people to this flow" });
-  const existing = await db.query(
-    "SELECT code FROM invite_codes WHERE flow_id = $1 AND created_by = $2 ORDER BY created_at DESC LIMIT 1",
-    [flowId, req.user.id]
+async function joinCodeForFlow(flowId) {
+  const r = await db.query(
+    "SELECT code FROM invite_codes WHERE flow_id = $1 ORDER BY created_at DESC LIMIT 1",
+    [flowId]
   );
-  if (existing.rows[0]) return res.json({ code: existing.rows[0].code, flowId, name: owned.rows[0].name });
+  return r.rows[0] ? r.rows[0].code : null;
+}
+
+async function ensureJoinCode(flowId, ownerId) {
+  const existing = await joinCodeForFlow(flowId);
+  if (existing) return existing;
   const code = auth.makeInviteCode();
-  const id = auth.uid();
   await db.query(
     "INSERT INTO invite_codes (id, code, created_by, flow_id, max_uses) VALUES ($1, $2, $3, $4, 0)",
-    [id, code, req.user.id, flowId]
+    [auth.uid(), code, ownerId, flowId]
   );
-  res.json({ code, flowId, name: owned.rows[0].name });
+  return code;
+}
+
+app.post("/api/flows/:id/share", auth.requireAuth, async (req, res) => {
+  const flowId = req.params.id;
+  const makePublic = !!(req.body && req.body.public);
+  const owned = await db.query(
+    "SELECT id, name, owner_id, is_public FROM flows WHERE id = $1 AND owner_id = $2",
+    [flowId, req.user.id]
+  );
+  if (!owned.rows[0]) return res.status(403).json({ error: "Only the owner can open or close this flow" });
+  let code = null;
+  if (makePublic) {
+    code = await ensureJoinCode(flowId, req.user.id);
+    await db.query("UPDATE flows SET is_public = true, updated_at = now() WHERE id = $1", [flowId]);
+  } else {
+    await db.query("UPDATE flows SET is_public = false, updated_at = now() WHERE id = $1", [flowId]);
+  }
+  res.json({
+    id: flowId,
+    name: owned.rows[0].name,
+    is_public: makePublic,
+    is_owner: true,
+    join_code: makePublic ? code : null,
+  });
 });
 
 app.post("/api/invites/redeem", auth.requireAuth, async (req, res) => {
@@ -166,18 +190,29 @@ app.post("/api/flows", auth.requireAuth, async (req, res) => {
   );
   await db.addFlowMember(id, req.user.id);
   storage.writeFlow(id, doc);
-  res.json({ id, name, data: doc });
+  res.json({ id, name, data: doc, is_public: false, is_owner: true, join_code: null });
 });
 
 app.get("/api/flows/:id", auth.requireAuth, async (req, res) => {
   if (!(await db.canAccessFlow(req.user.id, req.params.id))) {
     return res.status(404).json({ error: "Flow not found" });
   }
-  const r = await db.query("SELECT id, name, owner_id, updated_at FROM flows WHERE id = $1", [req.params.id]);
+  const r = await db.query(
+    "SELECT id, name, owner_id, updated_at, is_public FROM flows WHERE id = $1",
+    [req.params.id]
+  );
   if (!r.rows[0]) return res.status(404).json({ error: "Flow not found" });
+  const row = r.rows[0];
   const live = collab.liveDoc(req.params.id);
-  const data = live || storage.readFlow(req.params.id) || storage.emptyDoc(r.rows[0].name);
-  res.json({ ...r.rows[0], data });
+  const data = live || storage.readFlow(req.params.id) || storage.emptyDoc(row.name);
+  const isOwner = row.owner_id === req.user.id;
+  const joinCode = row.is_public ? await joinCodeForFlow(row.id) : null;
+  res.json({
+    ...row,
+    data,
+    is_owner: isOwner,
+    join_code: joinCode,
+  });
 });
 
 app.put("/api/flows/:id", auth.requireAuth, async (req, res) => {

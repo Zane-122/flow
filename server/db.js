@@ -52,6 +52,7 @@ async function migrate() {
     );
   `);
   await query(`ALTER TABLE invite_codes ADD COLUMN IF NOT EXISTS flow_id TEXT REFERENCES flows(id) ON DELETE CASCADE`);
+  await query(`ALTER TABLE flows ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT false`);
   await query(`
     INSERT INTO flow_members (flow_id, user_id)
     SELECT id, owner_id FROM flows WHERE owner_id IS NOT NULL

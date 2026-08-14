@@ -5,6 +5,36 @@
   const LAST_KEY = "flow.lastId";
 
   F.flowId = null;
+  F.flowShare = { isOwner: false, isPublic: false, code: null };
+
+  function paintShareUI(){
+    const chip = document.getElementById("shareChip");
+    const codeBtn = document.getElementById("shareCodeBtn");
+    const publicBtn = document.getElementById("publicBtn");
+    const share = F.flowShare || {};
+    if (publicBtn){
+      publicBtn.hidden = !share.isOwner;
+      publicBtn.textContent = share.isPublic ? "Make private" : "Open to public";
+      publicBtn.classList.toggle("public-on", !!share.isPublic);
+    }
+    if (chip && codeBtn){
+      if (share.isPublic && share.code){
+        chip.hidden = false;
+        codeBtn.textContent = share.code;
+      } else {
+        chip.hidden = true;
+      }
+    }
+  }
+
+  function applyShareState(body){
+    F.flowShare = {
+      isOwner: !!(body && body.is_owner),
+      isPublic: !!(body && body.is_public),
+      code: (body && body.join_code) || null
+    };
+    paintShareUI();
+  }
 
   function snapshotData(){
     return { version: 2, name: S.projectName, cam: F.cam, objects: S.objects };
@@ -39,6 +69,7 @@
     });
     remember(body.id);
     applyDoc(body.data, body.name);
+    applyShareState(body);
     if (F.collab && F.collab.join) F.collab.join(body.id);
     return body;
   }
@@ -47,6 +78,7 @@
     const body = await F.api("/api/flows/" + id);
     remember(body.id);
     applyDoc(body.data, body.name);
+    applyShareState(body);
     if (F.collab && F.collab.join) F.collab.join(body.id);
     if (opts && opts.toast) F.toast("Opened ✓");
     return body;
@@ -220,24 +252,38 @@
     createFlow(S.projectName, snapshotData()).then(() => hideFlows()).catch(err => F.toast(err.message));
   };
 
-  document.getElementById("inviteBtn").addEventListener("click", async () => {
+  document.getElementById("publicBtn").addEventListener("click", async () => {
     if (!F.flowId){
       F.toast("Open a flow first");
       return;
     }
+    if (!(F.flowShare && F.flowShare.isOwner)){
+      F.toast("Only the owner can open this flow to the public");
+      return;
+    }
+    const next = !(F.flowShare && F.flowShare.isPublic);
     try{
-      const body = await F.api("/api/invites", {
+      const body = await F.api("/api/flows/" + F.flowId + "/share", {
         method: "POST",
-        body: JSON.stringify({ flowId: F.flowId })
+        body: JSON.stringify({ public: next })
       });
-      const code = body.code;
-      try { await navigator.clipboard.writeText(code); } catch (e) {}
-      F.toast("Invite copied: " + code);
-      const el = document.getElementById("inviteCodeOut");
-      if (el){ el.textContent = code; el.hidden = false; }
+      applyShareState(body);
+      if (next){
+        try { await navigator.clipboard.writeText(body.join_code); } catch (e) {}
+        F.toast("Flow is public — code shown at the top");
+      } else {
+        F.toast("Flow is private again");
+      }
     } catch (err){
       F.toast(err.message);
     }
+  });
+
+  document.getElementById("shareCodeBtn").addEventListener("click", async () => {
+    const code = F.flowShare && F.flowShare.code;
+    if (!code) return;
+    try { await navigator.clipboard.writeText(code); } catch (e) {}
+    F.toast("Copied " + code);
   });
 
   document.getElementById("flowsJoin").addEventListener("submit", async (e) => {

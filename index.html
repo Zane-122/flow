@@ -33,10 +33,14 @@
   </button>
   <div class="account-menu" id="accountMenu">
     <div class="account-email" id="accountEmail"></div>
-    <button class="btn" id="inviteBtn" type="button">Invite to this flow</button>
-    <div class="invite-out" id="inviteCodeOut" hidden></div>
+    <button class="btn" id="publicBtn" type="button">Open to public</button>
     <button class="btn" id="logoutBtn" type="button">Log out</button>
   </div>
+</div>
+
+<div class="share-chip" id="shareChip" hidden>
+  <span class="share-lbl">Public · join with</span>
+  <button type="button" class="share-code" id="shareCodeBtn" title="Click to copy">FLOW-XXXXXX</button>
 </div>
 
 <canvas id="canvas"></canvas>
@@ -194,7 +198,7 @@
     </div>
     <div class="flows-list" id="flowsList"></div>
     <form class="flows-join" id="flowsJoin">
-      <input id="joinCode" type="text" placeholder="FLOW-XXXXXX" spellcheck="false" autocomplete="off">
+      <input id="joinCode" type="text" placeholder="Join code (FLOW-XXXXXX)" spellcheck="false" autocomplete="off">
       <button class="btn" type="submit">Join</button>
     </form>
     <div class="describe-actions">
