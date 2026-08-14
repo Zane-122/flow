@@ -1,31 +1,56 @@
 "use strict";
 
 const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const db = require("./db");
+const storage = require("./storage");
 
 const COOKIE = "flow_sid";
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+let cachedSecret = null;
 
 function secret() {
-  const s = process.env.SESSION_SECRET || "";
-  const hosted = !!(process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === "production");
-  if (hosted && (!s || s === "change-me-to-a-long-random-string")) {
-    throw new Error("SESSION_SECRET is required in production");
+  if (cachedSecret) return cachedSecret;
+  const fromEnv = (process.env.SESSION_SECRET || "").trim();
+  if (fromEnv && fromEnv !== "change-me-to-a-long-random-string") {
+    cachedSecret = fromEnv;
+    return cachedSecret;
   }
-  return s || "dev-only-secret-do-not-use-in-prod";
+  const file = path.join(storage.dataDir(), ".session-secret");
+  try {
+    if (fs.existsSync(file)) {
+      const stored = fs.readFileSync(file, "utf8").trim();
+      if (stored) {
+        cachedSecret = stored;
+        return cachedSecret;
+      }
+    }
+  } catch (e) { /* ignore */ }
+  cachedSecret = crypto.randomBytes(32).toString("hex");
+  try {
+    storage.ensureDirs();
+    fs.writeFileSync(file, cachedSecret, { encoding: "utf8", mode: 0o600 });
+    console.warn("SESSION_SECRET was not set; generated one at", file);
+  } catch (e) {
+    console.warn("SESSION_SECRET was not set and could not be saved; sessions reset on restart");
+  }
+  return cachedSecret;
 }
 
 function uid() {
   return crypto.randomUUID();
 }
 
-function cookieOpts() {
+function cookieOpts(req) {
+  const proto = String((req && (req.get && req.get("x-forwarded-proto") || (req.headers && req.headers["x-forwarded-proto"]))) || (req && req.protocol) || "");
+  const https = proto.includes("https") || !!(req && req.secure);
   return {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production" || process.env.RAILWAY_ENVIRONMENT != null,
+    secure: https,
     maxAge: MAX_AGE_MS,
     path: "/",
   };
@@ -63,12 +88,12 @@ function tokenFromReq(req) {
   return m ? decodeURIComponent(m[1]) : null;
 }
 
-function setSession(res, user) {
-  res.cookie(COOKIE, sign(user), cookieOpts());
+function setSession(res, user, req) {
+  res.cookie(COOKIE, sign(user), cookieOpts(req));
 }
 
-function clearSession(res) {
-  res.clearCookie(COOKIE, { ...cookieOpts(), maxAge: 0 });
+function clearSession(res, req) {
+  res.clearCookie(COOKIE, { ...cookieOpts(req), maxAge: 0 });
 }
 
 async function userById(id) {

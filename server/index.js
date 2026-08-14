@@ -66,11 +66,11 @@ app.post("/api/register", async (req, res) => {
       [id, email, hash, name]
     );
     const user = { id, email, name };
-    auth.setSession(res, user);
+    auth.setSession(res, user, req);
     res.json({ user });
   } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Could not create account" });
+    console.error("register failed", e);
+    res.status(500).json({ error: e && e.message ? e.message : "Could not create account" });
   }
 });
 
@@ -84,16 +84,16 @@ app.post("/api/login", async (req, res) => {
     const ok = await auth.bcrypt.compare(password, row.password_hash);
     if (!ok) return res.status(401).json({ error: "Email or password is wrong" });
     const user = db.publicUser(row);
-    auth.setSession(res, user);
+    auth.setSession(res, user, req);
     res.json({ user });
   } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Could not sign in" });
+    console.error("login failed", e);
+    res.status(500).json({ error: e && e.message ? e.message : "Could not sign in" });
   }
 });
 
 app.post("/api/logout", (req, res) => {
-  auth.clearSession(res);
+  auth.clearSession(res, req);
   res.json({ ok: true });
 });
 

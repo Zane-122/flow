@@ -76,7 +76,11 @@
         body: JSON.stringify({ email, password, name })
       });
       setSignedIn(body.user);
-      if (F.cloud && F.cloud.start) await F.cloud.start();
+      try{
+        if (F.cloud && F.cloud.start) await F.cloud.start();
+      } catch (bootErr){
+        if (F.toast) F.toast(bootErr.message || "Signed in, but the flow failed to load");
+      }
     } catch (err){
       showError(err.message);
     }

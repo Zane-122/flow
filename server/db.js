@@ -2,9 +2,17 @@
 
 const { Pool } = require("pg");
 
+function pgSsl() {
+  if (process.env.DATABASE_SSL === "0") return false;
+  if (process.env.DATABASE_SSL === "1") return { rejectUnauthorized: false };
+  const url = process.env.DATABASE_URL || "";
+  if (/localhost|127\.0\.0\.1|\.railway\.internal/i.test(url)) return false;
+  return { rejectUnauthorized: false };
+}
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_SSL === "0" ? false : (process.env.DATABASE_URL || "").includes("localhost") ? false : { rejectUnauthorized: false },
+  ssl: pgSsl(),
 });
 
 async function query(text, params) {
