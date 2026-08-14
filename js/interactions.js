@@ -696,9 +696,17 @@
     F.updateHUD();
   }
 
+  function isFormField(el){
+    if (!el) return false;
+    const tag = (el.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea" || tag === "select") return true;
+    return !!el.isContentEditable;
+  }
+
   // ---- Keyboard ------------------------------------------------------------
   window.addEventListener('keydown', (e) => {
     if (S.editingObj) return; // editor handles its own keys
+    if (isFormField(e.target)) return; // let join-code / name fields copy, paste, type
     const meta = e.metaKey || e.ctrlKey;
     const readOnly = F.isReadOnly && F.isReadOnly();
     if (meta && e.key.toLowerCase() === 'z'){
