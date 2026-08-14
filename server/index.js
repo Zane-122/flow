@@ -216,11 +216,14 @@ app.get("/api/flows/:id", auth.requireAuth, async (req, res) => {
 });
 
 app.put("/api/flows/:id", auth.requireAuth, async (req, res) => {
-  if (!(await db.canAccessFlow(req.user.id, req.params.id))) {
-    return res.status(404).json({ error: "Flow not found" });
-  }
-  const r = await db.query("SELECT id, name FROM flows WHERE id = $1", [req.params.id]);
+  const r = await db.query(
+    "SELECT id, name, owner_id FROM flows WHERE id = $1",
+    [req.params.id]
+  );
   if (!r.rows[0]) return res.status(404).json({ error: "Flow not found" });
+  if (r.rows[0].owner_id !== req.user.id) {
+    return res.status(403).json({ error: "Only the owner can save this flow" });
+  }
   const name = String((req.body && req.body.name) || r.rows[0].name).trim().slice(0, 80) || r.rows[0].name;
   const incoming = req.body && req.body.data;
   const live = collab.liveDoc(req.params.id);

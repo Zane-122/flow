@@ -69,6 +69,7 @@
 
   function notifyDoc(){
     if (!F.flowId || ignoreDoc) return;
+    if (F.isReadOnly && F.isReadOnly()) return;
     if (S.drag && S.drag.active) return;
     if (S.editingObj) return;
     const key = snapshotKey();

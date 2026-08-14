@@ -241,6 +241,17 @@ body.signed-in .account-wrap{display:flex;}
 .account-menu .btn{width:100%;margin-top:6px;background:rgba(255,255,255,0.06);}
 .account-menu .btn.public-on{background:rgba(92,225,166,0.18);color:#5ce1a6;}
 
+body.flow-guest #saveBtn{
+  opacity:0.45;cursor:not-allowed;
+}
+body.flow-guest #saveBtn:disabled{pointer-events:auto;}
+body.flow-guest .bar .btn[data-tool="draw"],
+body.flow-guest .bar .btn[data-tool="shape"],
+body.flow-guest .bar .btn[data-tool="text"],
+body.flow-guest .bar .btn[data-tool="fill"]{
+  opacity:0.4;
+}
+
 .share-chip{
   position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:11;
   display:flex;align-items:center;gap:10px;padding:8px 12px 8px 14px;

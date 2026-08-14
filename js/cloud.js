@@ -7,18 +7,40 @@
   F.flowId = null;
   F.flowShare = { isOwner: false, isPublic: false, code: null };
 
+  F.isFlowOwner = function(){
+    return !!(F.flowId && F.flowShare && F.flowShare.isOwner);
+  };
+
+  F.isReadOnly = function(){
+    return !!(F.flowId && F.flowShare && !F.flowShare.isOwner);
+  };
+
   function paintShareUI(){
     const chip = document.getElementById("shareChip");
     const codeBtn = document.getElementById("shareCodeBtn");
     const publicBtn = document.getElementById("publicBtn");
+    const saveBtn = document.getElementById("saveBtn");
     const share = F.flowShare || {};
+    const owner = F.isFlowOwner();
+    const guest = F.isReadOnly();
+    document.body.classList.toggle("flow-owner", owner);
+    document.body.classList.toggle("flow-guest", guest);
     if (publicBtn){
-      publicBtn.hidden = !share.isOwner;
-      publicBtn.textContent = share.isPublic ? "Make private" : "Open to public";
+      publicBtn.hidden = !owner;
+      publicBtn.textContent = share.isPublic ? "Make this flow private" : "Open this flow to public";
       publicBtn.classList.toggle("public-on", !!share.isPublic);
+      publicBtn.title = owner
+        ? (share.isPublic
+          ? "Only this open flow will become private"
+          : "Only this open flow will get a join code")
+        : "";
+    }
+    if (saveBtn){
+      saveBtn.disabled = guest;
+      saveBtn.title = guest ? "Only the owner can save" : "Save";
     }
     if (chip && codeBtn){
-      if (share.isPublic && share.code){
+      if (owner && share.isPublic && share.code){
         chip.hidden = false;
         codeBtn.textContent = share.code;
       } else {
@@ -132,6 +154,10 @@
   }
 
   async function saveNow(){
+    if (F.isReadOnly()){
+      F.toast("Only the owner can save this flow");
+      return false;
+    }
     if (!F.flowId){
       await createFlow(S.projectName, snapshotData());
       F.toast("Saved ✓");
@@ -229,6 +255,11 @@
 
   const origSetName = F.setProjectName;
   F.setProjectName = function(name){
+    if (F.isReadOnly()){
+      F.toast("Only the owner can rename this flow");
+      if (F.updateProjectUI) F.updateProjectUI();
+      return;
+    }
     origSetName(name);
     if (F.collab && F.collab.notifyDoc) F.collab.notifyDoc();
   };
@@ -257,12 +288,13 @@
       F.toast("Open a flow first");
       return;
     }
-    if (!(F.flowShare && F.flowShare.isOwner)){
-      F.toast("Only the owner can open this flow to the public");
+    if (!F.isFlowOwner()){
+      F.toast("Only the owner can change sharing for this flow");
       return;
     }
     const next = !(F.flowShare && F.flowShare.isPublic);
     try{
+      // Always the flow currently open (F.flowId), never another one.
       const body = await F.api("/api/flows/" + F.flowId + "/share", {
         method: "POST",
         body: JSON.stringify({ public: next })
@@ -270,9 +302,9 @@
       applyShareState(body);
       if (next){
         try { await navigator.clipboard.writeText(body.join_code); } catch (e) {}
-        F.toast("Flow is public — code shown at the top");
+        F.toast("Opened “" + (S.projectName || "this flow") + "” to public — code at the top");
       } else {
-        F.toast("Flow is private again");
+        F.toast("Made “" + (S.projectName || "this flow") + "” private");
       }
     } catch (err){
       F.toast(err.message);

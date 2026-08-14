@@ -91,7 +91,7 @@ async function join(ws, flowId) {
     send(ws, { type: "error", error: "You don't have access to this flow" });
     return;
   }
-  const exists = await db.query("SELECT id, name FROM flows WHERE id = $1", [flowId]);
+  const exists = await db.query("SELECT id, name, owner_id FROM flows WHERE id = $1", [flowId]);
   if (!exists.rows[0]) {
     send(ws, { type: "error", error: "Flow not found" });
     return;
@@ -100,8 +100,15 @@ async function join(ws, flowId) {
   const r = room(flowId);
   if (!r.doc) r.doc = storage.readFlow(flowId) || storage.emptyDoc(exists.rows[0].name);
   ws.flowId = flowId;
+  ws.isOwner = exists.rows[0].owner_id === ws.user.id;
   r.clients.add(ws);
-  send(ws, { type: "joined", flowId, doc: r.doc, peers: presence(flowId) });
+  send(ws, {
+    type: "joined",
+    flowId,
+    doc: r.doc,
+    peers: presence(flowId),
+    is_owner: ws.isOwner,
+  });
   broadcast(flowId, { type: "presence", peers: presence(flowId) }, ws);
 }
 
@@ -153,6 +160,10 @@ function attach(server) {
       }
 
       if (msg.type === "doc") {
+        if (!ws.isOwner) {
+          send(ws, { type: "error", error: "Only the owner can edit this flow" });
+          return;
+        }
         const r = rooms.get(ws.flowId);
         if (!r) return;
         const objects = Array.isArray(msg.objects) ? msg.objects : [];
