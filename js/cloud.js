@@ -312,9 +312,9 @@
       applyShareState(body);
       if (next){
         try { await navigator.clipboard.writeText(body.join_code); } catch (e) {}
-        F.toast("Opened “" + (S.projectName || "this flow") + "” to public — code at the top");
+        F.toast("Opened “" + (S.projectName || "this flow") + "” to public — others can join and edit");
       } else {
-        F.toast("Made “" + (S.projectName || "this flow") + "” private");
+        F.toast("Made private — everyone else was kicked out");
       }
     } catch (err){
       F.toast(err.message);
